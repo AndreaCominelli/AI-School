@@ -6,14 +6,14 @@ import type { AbstractCms } from "../AbstractCms.d.ts";
 import axios, { AxiosError } from "axios";
 import { ToolError } from "@anthropic-ai/sdk/lib/tools/ToolError";
 import { z } from "zod/v4";
-import { readFile, writeFile } from "../../utils.ts";
+import { readFile } from "../../utils.ts";
 
 const CONTENT_TYPES_URL = "https://eu-api.contentstack.com/v3/content_types";
-const ALREADY_DONE_FILE_NAME = 'already_done';
 
 class ContentstackCms implements AbstractCms {
     cmsKnowledge: string = '';
     knowledgePaths: string[] = [];
+    alreadyCreatedContents: string[] = [];
 
     constructor(knowledgePaths: string[]) {
         this.knowledgePaths = knowledgePaths;
@@ -39,6 +39,13 @@ class ContentstackCms implements AbstractCms {
 
     getCmsKnowledge(): string {
         return this.cmsKnowledge;
+    }
+
+    /**
+     * used to retrieve all the paths of successfully created components in the cms
+     */
+    getAlreadyCreatedContents(): string[] {
+        return this.alreadyCreatedContents;
     }
 
     getAllContentTypes(): BetaRunnableTool<any> {
@@ -139,29 +146,36 @@ class ContentstackCms implements AbstractCms {
             run: async ({ data, includeBranch, componentPath }) => {
                 const cmsApiKey = process.env.CMS_API_KEY;
                 const cmsMngmtToken = process.env.CMS_MNG_TOKEN;
+                const ALREADY_DONE_FILE_NAME = 'already_done';
 
                 try {
                     // check if component has already been created as content type
                     const alreadyDoneComponents = await readFile(ALREADY_DONE_FILE_NAME);
                     const paths = alreadyDoneComponents.split('\n');
 
-                    if (paths.includes(componentPath)) {
-                        throw new ToolError('The component has already been created');
+                    if (!paths.includes(componentPath)) {
+                        const response = await axios.post(
+                            CONTENT_TYPES_URL,
+                            data,
+                            {
+                                headers: {
+                                    api_key: cmsApiKey,
+                                    authorization: cmsMngmtToken,
+                                    "Content-Type": "application/json",
+                                },
+                                params: includeBranch
+                                    ? { include_branch: includeBranch }
+                                    : {},
+                            },
+                        );
+                        // await writeFile(ALREADY_DONE_FILE_NAME, componentPath);
+                        // console.log("--- created successfully ---")
+                        this.alreadyCreatedContents.push(componentPath);
+                        return JSON.stringify(response.data);
                     }
-
-                    const response = await axios.post(CONTENT_TYPES_URL, data, {
-                        headers: {
-                            api_key: cmsApiKey,
-                            authorization: cmsMngmtToken,
-                            "Content-Type": "application/json",
-                        },
-                        params: includeBranch
-                            ? { include_branch: includeBranch }
-                            : {},
-                    });
-                    await writeFile(ALREADY_DONE_FILE_NAME, componentPath);
-                    return JSON.stringify(response.data);
+                    return '';
                 } catch (err) {
+                    console.log("--- error ---")
                     let errorMsg: string = "";
                     if (err instanceof AxiosError) {
                         errorMsg = err.message;
