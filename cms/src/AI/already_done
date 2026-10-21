@@ -1,1 +1,4 @@
+src/components/badge
+src/components/input
 src/components/label
+src/components/button

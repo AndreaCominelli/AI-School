@@ -25,7 +25,6 @@ export const writeFile = async (filePath: string, line: string): Promise<void> =
     const writeStream = fs.createWriteStream(coolPath);
     writeStream.write(line, (error) => {
         console.log(error);
-        writeStream.close();
     });
     writeStream.close();
 }
