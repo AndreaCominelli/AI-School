@@ -4,7 +4,6 @@ import { claudeClient } from "./client.ts";
 import { readComponent } from "./tools.ts";
 import type { AbstractCms } from "./cms/AbstractCms";
 import ContentstackCms from "./cms/contentstack/ContentstackCms.ts";
-import { writeFile } from "./utils.ts";
 
 const cmsSetup = async ():Promise<AbstractCms> => {
     let cms: AbstractCms = {} as AbstractCms;
@@ -24,7 +23,7 @@ const main = async () => {
         const cms = await cmsSetup();
         const claudeResponse = await claudeClient.beta.messages.toolRunner({
             model: process.env.MODEL || '',
-            messages: [{ role: 'user', content: 'Create three new content types for badge, input and label components'}],
+            messages: [{ role: 'user', content: 'How do I prepare pasta?'}],
             cache_control: { type: 'ephemeral', ttl: '1h'},
             max_tokens: 8192,
             tools: [
@@ -53,10 +52,6 @@ const main = async () => {
             ]
         })
 
-        if (claudeResponse.stop_reason === 'end_turn') {
-            const createdContents = cms.getAlreadyCreatedContents();
-            await writeFile('already_done', createdContents);
-        }
         for (const block of claudeResponse.content) {
             console.log(block);
         }

@@ -2,9 +2,7 @@ import type { BetaRunnableTool } from "@anthropic-ai/sdk/lib/tools/BetaRunnableT
 
 export interface AbstractCms {
     protected cmsKnowledge: string;
-    protected alreadyCreatedContents: string[];
-    protected setup: () => void; 
-    protected getAlreadyCreatedContents: () => string[];
+    protected setup: () => void;
     protected getCmsKnowledge: () => string;
     protected getAllContentTypes: () => BetaRunnableTool<any>;
     protected getContentTypesByUID: () => BetaRunnableTool<any>;

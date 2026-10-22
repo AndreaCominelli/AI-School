@@ -6,14 +6,13 @@ import type { AbstractCms } from "../AbstractCms.d.ts";
 import axios, { AxiosError } from "axios";
 import { ToolError } from "@anthropic-ai/sdk/lib/tools/ToolError";
 import { z } from "zod/v4";
-import { readFile } from "../../utils.ts";
+import { readFile, writeFile } from "../../utils.ts";
 
 const CONTENT_TYPES_URL = "https://eu-api.contentstack.com/v3/content_types";
 
 class ContentstackCms implements AbstractCms {
     cmsKnowledge: string = '';
     knowledgePaths: string[] = [];
-    alreadyCreatedContents: string[] = [];
 
     constructor(knowledgePaths: string[]) {
         this.knowledgePaths = knowledgePaths;
@@ -39,13 +38,6 @@ class ContentstackCms implements AbstractCms {
 
     getCmsKnowledge(): string {
         return this.cmsKnowledge;
-    }
-
-    /**
-     * used to retrieve all the paths of successfully created components in the cms
-     */
-    getAlreadyCreatedContents(): string[] {
-        return this.alreadyCreatedContents;
     }
 
     getAllContentTypes(): BetaRunnableTool<any> {
@@ -168,18 +160,13 @@ class ContentstackCms implements AbstractCms {
                                     : {},
                             },
                         );
-                        // await writeFile(ALREADY_DONE_FILE_NAME, componentPath);
-                        // console.log("--- created successfully ---")
-                        this.alreadyCreatedContents.push(componentPath);
+                        await writeFile(ALREADY_DONE_FILE_NAME, componentPath);
                         return JSON.stringify(response.data);
                     }
                     return '';
                 } catch (err) {
-                    console.log("--- error ---")
                     let errorMsg: string = "";
-                    if (err instanceof AxiosError) {
-                        errorMsg = err.message;
-                    } else if (err instanceof ToolError) {
+                    if (err instanceof AxiosError || err instanceof ToolError) {
                         errorMsg = err.message;
                     }
                     else {

@@ -19,11 +19,11 @@ export const readFile = async (filePath: string): Promise<string> => {
     }
 }
 
-export const writeFile = async (filePath: string, lines: string[]): Promise<void> => {
+export const writeFile = async (filePath: string, line: string): Promise<void> => {
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
     const coolPath = path.join(__dirname, filePath);
-    const writeStream = fs.createWriteStream(coolPath);
-    writeStream.write(lines.join('\n'), (error) => {
+    const writeStream = fs.createWriteStream(coolPath, { flags: 'a' });
+    writeStream.write(line, (error) => {
         console.log(error);
         writeStream.close();
     });
