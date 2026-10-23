@@ -74,6 +74,9 @@ The server listens on the port set in `PORT` (default `3000`).
 
    If the script is not executable, run `chmod +x run-container.sh` first.
 
+4. Call the agent
+   Send a POST request to the REST endpoint `http://localhost:<PORT>/` with a `message` field in the body. 
+
 If you use a different `PORT` in `.env`, make sure the port published by the container matches it.
 
 ## Modifying the application
