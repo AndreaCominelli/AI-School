@@ -1,0 +1,25 @@
+{
+  "name": "rag-ts",
+  "version": "1.0.0",
+  "description": "A general RAG project in Typescript",
+  "license": "ISC",
+  "author": "Andrea Cominelli",
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.ts"
+  },
+  "devDependencies": {
+    "dotenv": "^18.0.8",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.1.0",
+    "ai": "^7.0.150",
+    "axios": "^1.20.0",
+    "express": "^5.3.0",
+    "voyage-ai-provider": "^5.0.0",
+    "zod": "^4.6.7"
+  }
+}
