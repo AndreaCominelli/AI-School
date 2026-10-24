@@ -12,6 +12,7 @@ import {
     readFileSync,
 } from "./utils.ts";
 import { embed, embedMany, rerank } from "ai";
+import { BM25 } from 'fast-bm25';
 
 const EMBEDDINGS_DIRECTORY = './data/document_embeddings';
 
@@ -28,6 +29,7 @@ class VectorDB {
     private inputData: Chunk[];
     private embeddings: Embedding[] = [];
     private embeddedQueryCache: Map<String, Embedding> = new Map();
+    private bm25: BM25;
 
     private constructor(inputFileString: string, modelName?: string) {
         this.embeddingModel = voyageClient.embeddingModel(
@@ -35,6 +37,9 @@ class VectorDB {
         );
         this.rerankingModel = voyage.reranking('rerank-2.5');
         this.inputData = JSON.parse(inputFileString);
+        this.bm25 = new BM25(this.inputData.map(
+            (chunk) => ({ title: chunk.chunk_heading, content: chunk.text })
+        ));
     }
 
     static instance(inputDataPath: string, modelName?: string): VectorDB {
@@ -102,7 +107,7 @@ class VectorDB {
             this.embeddedQueryCache.set(query, queryEmbedded);
         }
 
-        const chunkScores = this.embeddings
+        const chunkScoresEmbedded = this.embeddings
             .map((embedding, index) => ({
                 index,
                 score: cosineSimilarity(queryEmbedded, embedding),
@@ -110,14 +115,32 @@ class VectorDB {
             .sort((a, b) => b.score - a.score)
             .slice(0, k);
 
-        const documents: string[] = []
-        for (const chunkScore of chunkScores) {
+        const chunkScoresBM25 = this.bm25.search(query, k);
+        
+        const bestDocuments: string[] = []
+
+        // retrieve indexes by embedding similarity
+        const indexesByEmbedding: number[] = []
+        for (const chunkScore of chunkScoresEmbedded) {
             const { index } = chunkScore;
-            const chunkText = this.inputData[index].text;
-            documents.push(chunkText)
+            indexesByEmbedding.push(index);
         }
 
-        return this.rerank(documents, query);
+        // retrieve indexes by BM25
+        const indexesByBM25: number[] = []
+        for (const chunkScore of chunkScoresBM25) {
+            const { index } = chunkScore;
+            indexesByBM25.push(index);
+        }
+
+        const chunkScores = this.rrf([indexesByEmbedding, indexesByBM25]);
+        for (const chunkScore of chunkScores) {
+            const { id } = chunkScore;
+            const document = this.inputData[id].text;
+            bestDocuments.push(document);
+        }
+
+        return this.rerank(bestDocuments, query);
     }
 
     private async rerank(documents: string[], query: string, topK=3) {
@@ -129,6 +152,19 @@ class VectorDB {
         })
 
         return rankedDocuments;
+    }
+
+    // retrieval rank fusion -> used to combine embeddings and bm25 results
+    private rrf(chunksIndexes: number[][], k = 60) {
+        const scores = new Map();
+        for (const chunkIndex of chunksIndexes) {
+            chunkIndex.forEach((id: number, index: number) => {
+                scores.set(id, (scores.get(id) ?? 0) + 1 / (k + index + 1));
+            });
+        }
+        return [...scores.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .map(([id, score]) => ({ id, score } as {id: number, score: number}));
     }
 
     public getInputData(): Chunk[] {

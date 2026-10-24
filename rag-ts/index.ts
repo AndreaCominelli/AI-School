@@ -5,7 +5,7 @@ import VectorDB from "./src/VectorDB.ts";
 const vectorDb: VectorDB= VectorDB.instance('../data/anthropic_docs.json');
 
 const main = async () => {
-    const query = 'What is RAG and how do I implement it?';
+    const query = 'What is the best claude model?';
     
     await vectorDb.initDB();
     const contexts = await vectorDb.search(query);
