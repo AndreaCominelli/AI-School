@@ -20,6 +20,8 @@
     "axios": "^1.20.0",
     "express": "^5.3.0",
     "fast-bm25": "^0.0.6",
+    "pdfjs-dist": "^6.4.299",
+    "pdfreader": "^3.0.8",
     "voyage-ai-provider": "^5.0.0",
     "zod": "^4.6.7"
   }

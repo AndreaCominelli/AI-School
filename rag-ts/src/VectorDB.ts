@@ -10,17 +10,13 @@ import {
     writeEmbeddings,
     loadEmbeddings,
     readFileSync,
+    type Chunk,
+    computeAbsolutePath,
 } from "./utils.ts";
 import { embed, embedMany, rerank } from "ai";
 import { BM25 } from 'fast-bm25';
 
 const EMBEDDINGS_DIRECTORY = './data/document_embeddings';
-
-interface Chunk {
-    chunk_link: string;
-    chunk_heading: string;
-    text: string;
-}
 
 class VectorDB {
     private static vectorDb: VectorDB | undefined = undefined;
@@ -31,22 +27,26 @@ class VectorDB {
     private embeddedQueryCache: Map<String, Embedding> = new Map();
     private bm25: BM25;
 
-    private constructor(inputFileString: string, modelName?: string) {
+    private constructor(inputFilesString: string[], modelName?: string) {
         this.embeddingModel = voyageClient.embeddingModel(
             modelName || process.env.VOYAGE_MODEL || "voyage-3-lite",
         );
         this.rerankingModel = voyage.reranking('rerank-2.5');
-        this.inputData = JSON.parse(inputFileString);
+        this.inputData = inputFilesString.flatMap((stringFile) => JSON.parse(stringFile) as Chunk[]);
         this.bm25 = new BM25(this.inputData.map(
-            (chunk) => ({ title: chunk.chunk_heading, content: chunk.text })
+            (chunk) => ({ title: chunk.context, content: chunk.text }) 
         ));
     }
 
-    static instance(inputDataPath: string, modelName?: string): VectorDB {
+    static instance(inputDataDirPath: string, modelName?: string): VectorDB {
         try {
             if (!this.vectorDb) {
-                const inputFileString: string = readFileSync(inputDataPath);
-                this.vectorDb = new VectorDB(inputFileString, modelName);
+                let inputFilesString: string[] = [];
+                const coolPath = computeAbsolutePath(inputDataDirPath);
+                fs.readdirSync(coolPath).forEach((fileName) => {
+                    inputFilesString.push(readFileSync(path.resolve(coolPath, fileName)));
+                })
+                this.vectorDb = new VectorDB(inputFilesString, modelName);
             }
             return this.vectorDb;
         } catch (err) {
@@ -69,7 +69,7 @@ class VectorDB {
                 );
             }
             console.log("Saving embeddings on local file...\n");
-            const chunksText = this.inputData.map((chunk) => chunk.text);
+            const chunksText = this.inputData.map((chunk) => chunk.context + '\n\n' + chunk.text);
             const { embeddings } = await embedMany({
                 model: this.embeddingModel,
                 values: chunksText,
@@ -154,7 +154,7 @@ class VectorDB {
         return rankedDocuments;
     }
 
-    // retrieval rank fusion -> used to combine embeddings and bm25 results
+    // reciprocal rank fusion -> used to combine embeddings and bm25 results
     private rrf(chunksIndexes: number[][], k = 60) {
         const scores = new Map();
         for (const chunkIndex of chunksIndexes) {
