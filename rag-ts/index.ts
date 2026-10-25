@@ -1,17 +1,11 @@
 import "dotenv/config";
 import { claudeClient } from "./src/clients.ts";
-import { readPdf, convertAllFilesInDir } from "./src/utils.ts";
+import { convertAllFilesInDir } from "./src/utils.ts";
 import VectorDB from "./src/VectorDB.ts";
-import fs from 'fs';
-import path from "path";
 
-const vectorDb: VectorDB= VectorDB.instance('../data/json/');
+const arg = process.argv[2];
 
-const main = async () => {
-
-    // convertAllFilesInDir('./data/papers', '../data/json');
-    // const chunksPerPage = await readPdf('./data/papers/first_test.pdf')
-    // convertChunksToJson('../data/json/first_test.json', chunksPerPage);
+const main = async (vectorDb: VectorDB) => {
 
     const query = 'What is introduction speaker representation learning?';
     
@@ -47,4 +41,15 @@ const main = async () => {
     }
 };
 
-main();
+switch (arg) {
+    case 'inference':
+        const vectorDb: VectorDB= VectorDB.instance('../data/json/');
+        main(vectorDb);
+        break;
+    case 'convert':
+        convertAllFilesInDir('./data/papers', '../data/json');
+        break;
+    default:
+        console.log("Command not implemented");
+        break;
+}
