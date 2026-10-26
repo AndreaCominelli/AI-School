@@ -1,9 +1,13 @@
 import "dotenv/config";
 import express, { type Express, type Request, type Response } from 'express';
 import AgentService from "./services/agentService.ts";
+import { getLangFuse } from './services/langFuse.ts';
 
 const app: Express = express();
 const service: AgentService = AgentService.buildService(process.env.CMS);
+
+const sdk = getLangFuse();
+sdk.start();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
