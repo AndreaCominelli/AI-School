@@ -1,7 +1,8 @@
 import "dotenv/config";
 import { claudeClient } from "./src/clients.ts";
-import { convertAllFilesInDir } from "./src/utils.ts";
+import { convertAllFilesInDir, readFileSync, writeFile } from "./src/utils.ts";
 import VectorDB from "./src/VectorDB.ts";
+import { buildEvaluationDataset, evaluate } from "./src/evaluation.ts";
 
 const arg = process.argv[2];
 
@@ -11,7 +12,7 @@ const main = async (vectorDb: VectorDB) => {
     
     await vectorDb.initDB();
     const contexts = await vectorDb.search(query);
-    const topDocuments = contexts.ranking.map((doc) => doc.document).join('\n');
+    const topDocuments = contexts.ranking.map((doc) => doc.document.text).join('\n');
 
     const prompt = `\
         You have been tasked with helping us to answer the following query:
@@ -41,13 +42,28 @@ const main = async (vectorDb: VectorDB) => {
     }
 };
 
+let vectorDb;
+
 switch (arg) {
     case 'inference':
-        const vectorDb: VectorDB= VectorDB.instance('../data/json/');
+        vectorDb = VectorDB.instance('../data/json/');
         main(vectorDb);
         break;
     case 'convert':
         convertAllFilesInDir('./data/papers', '../data/json');
+        break;
+    case 'evaluation':
+        vectorDb = VectorDB.instance('../data/json/');
+        const samplesString = readFileSync('./src/evaluation.json');
+        const samples = JSON.parse(samplesString);
+        const result = await evaluate(samples, vectorDb);
+        console.log(result);
+        break;
+    case 'create-dataset':
+        vectorDb = VectorDB.instance('../data/json/');
+        const datasetSamples = await buildEvaluationDataset(vectorDb.getInputData());
+        const datasetSamplesString = JSON.stringify(datasetSamples);
+        await writeFile('./evaluation.json', datasetSamplesString);
         break;
     default:
         console.log("Command not implemented");

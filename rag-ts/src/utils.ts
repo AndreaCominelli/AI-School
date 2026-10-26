@@ -10,6 +10,7 @@ export type Chunk = {
     context: string,
     text: string;
     page: number;
+    id: string;
 }
 
 export const computeAbsolutePath = (fileDirName: string) => {
@@ -47,6 +48,20 @@ export const writeFile = async (
     const coolPath = computeAbsolutePath(filePath);
     const writeStream = fs.createWriteStream(coolPath, { flags: "a" });
     writeStream.write(line, (error) => {
+        console.log(error);
+        writeStream.close();
+    });
+};
+
+export const writeFileMultipleLines = async (
+    filePath: string | undefined,
+    lines: string[],
+): Promise<void> => {
+    if (!filePath) throw new Error("File path is undefined");
+
+    const coolPath = computeAbsolutePath(filePath);
+    const writeStream = fs.createWriteStream(coolPath);
+    writeStream.write(lines.join('\n'), (error) => {
         console.log(error);
         writeStream.close();
     });
@@ -121,7 +136,7 @@ export const toErrorMessage = (err: unknown): string => {
     }
 };
 
-const CHUNK_DIM = 300;      // parole target per chunk
+const CHUNK_DIM = 400;      // parole target per chunk
 const OVERLAP = 0.2;        // frazione di overlap
 const MIN_CHUNK_WORDS = 15; // sotto questa soglia il chunk viene fuso col vicino
 
@@ -203,51 +218,17 @@ const retrieveChunks = (
         }
     }
 
-    return merged.map(c => ({ text: c.join(' '), page, context: context || '' }));
+    return merged.map((c, index) => ({ text: c.join(' '), page, context: context || '', id: page + '-' +index }));
 };
-
-const titleFromFirstPage = async (doc: pdfjs.PDFDocumentProxy): Promise<string | undefined> => {
-    const page = await doc.getPage(1);
-    const { items } = await page.getTextContent();
-
-    const texts = items.filter((it: any) => it.str.trim()) as any[];
-    if (!texts.length) return undefined;
-
-    const maxSize = Math.max(...texts.map(it => it.height));
-
-    // prendo gli item con dimensione ~ massima (tolleranza per arrotondamenti)
-    const titleItems = texts.filter(it => it.height >= maxSize * 0.97);
-
-    return titleItems
-        .map(it => it.str + (it.hasEOL ? ' ' : ''))
-        .join('')
-        .replace(/\s+/g, ' ')
-        .trim() || undefined;
-};
-
-const looksLikeJunk = (t: string) =>
-    t.length < 5 ||
-    /\.(docx?|tex|dvi|pdf|indd)$/i.test(t) ||
-    /^(microsoft word|untitled|document)/i.test(t);
 
 export const readPdf = async (filePath: string): Promise<Chunk[][]> => {
-    let title = undefined;
     const data = new Uint8Array(await readFile(filePath));
     const doc = await pdfjs.getDocument({ data, useSystemFonts: true }).promise;
-    const { info, metadata } = await doc.getMetadata();
-    const meta = ((metadata?.get('dc:title') as string) ?? (info as any)?.Title ?? '').trim();
-
-    if (meta && !looksLikeJunk(meta)) {
-        title = meta;
-    } else {
-        title = await titleFromFirstPage(doc);
-    }
-
     const pages: string[] = [];
+
     for (let i = 1; i <= doc.numPages; i++) {
         const page = await doc.getPage(i);
         const content = await page.getTextContent();
-
         const text = content.items
             .map((it: any) => ('str' in it ? it.str + (it.hasEOL ? '\n' : '') : ''))
             .join('')
@@ -256,7 +237,8 @@ export const readPdf = async (filePath: string): Promise<Chunk[][]> => {
         pages.push(text);
     }
 
-    return pages.map((p, i) => retrieveChunks(p ?? '', CHUNK_DIM, i + 1, title, OVERLAP));
+    const context = splitSentences(pages[0])[0]; // prima frase della prima pagina
+    return pages.map((p, i) => retrieveChunks(p ?? '', CHUNK_DIM, i + 1, context, OVERLAP));
 }
 
 const convertChunksToJson = (filePath: string, chunksPerPage: Chunk[][]) => {

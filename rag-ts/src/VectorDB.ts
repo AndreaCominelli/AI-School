@@ -87,7 +87,7 @@ class VectorDB {
         }
     }
 
-    public async search(query: string, k = 10): Promise<RerankResult<string>> {
+    public async search(query: string, k = 10): Promise<RerankResult<Chunk>> {
         let queryEmbedded: number[] = [];
         if (this.embeddedQueryCache.has(query)) {
             queryEmbedded = this.embeddedQueryCache.get(query) as Embedding;
@@ -117,7 +117,7 @@ class VectorDB {
 
         const chunkScoresBM25 = this.bm25.search(query, k);
         
-        const bestDocuments: string[] = []
+        const bestDocuments: Chunk[] = []
 
         // retrieve indexes by embedding similarity
         const indexesByEmbedding: number[] = []
@@ -136,14 +136,14 @@ class VectorDB {
         const chunkScores = this.rrf([indexesByEmbedding, indexesByBM25]);
         for (const chunkScore of chunkScores) {
             const { id } = chunkScore;
-            const document = this.inputData[id].text;
+            const document = this.inputData[id];
             bestDocuments.push(document);
         }
 
         return this.rerank(bestDocuments, query);
     }
 
-    private async rerank(documents: string[], query: string, topK=3) {
+    private async rerank(documents: Chunk[], query: string, topK=3) {
         const rankedDocuments = await rerank({
             model: this.rerankingModel,
             documents: documents,
