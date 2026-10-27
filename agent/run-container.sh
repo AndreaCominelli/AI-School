@@ -1,0 +1,1 @@
+docker run --name CmsAgent --init -p 3000:3000 --env-file .env cms-agent
