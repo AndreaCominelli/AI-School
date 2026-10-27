@@ -45,6 +45,7 @@ class AgentService {
                 model: process.env.MODEL || "claude-haiku-5-5",
                 messages: [{ role: "user", content: req }],
                 max_tokens: 8192,
+                max_iterations: 2,
                 cache_control: {type: 'ephemeral', ttl: '1h'},
                 system: [
                     {
