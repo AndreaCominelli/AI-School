@@ -8,6 +8,8 @@ const main = async () => {
         await mcpClient.chatLoop();
     } catch (err) {
         console.error(err);
+    } finally {
+        await mcpClient.cleanup();
     }
 }
 

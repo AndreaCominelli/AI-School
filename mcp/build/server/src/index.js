@@ -1,7 +1,9 @@
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
-import { createServer } from './server.js';
-import ContentstackCms from "./cms/contentstack/ContentstackCms.js";
-const cms = new ContentstackCms([]);
-serveStdio(() => createServer(cms), {
-    onerror: (error) => console.error("Weather MCP Server error:", error),
-});
+import MCPServer from './server.js';
+const main = async () => {
+    const server = await MCPServer.create();
+    serveStdio(server.createServer, {
+        onerror: (error) => console.error("CMS MCP Server error:", error),
+    });
+};
+main();

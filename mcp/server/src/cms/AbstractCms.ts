@@ -3,6 +3,7 @@ import {
     type StandardSchemaWithJSON,
     type Icon,
     type ScopeChallengeHandler,
+    type ServerContext,
 } from "@modelcontextprotocol/server";
 import { type ZodRawShape } from "zod/v4";
 
@@ -18,12 +19,14 @@ export interface ITool<InputArgs extends ZodRawShape, OutputArgs extends ZodRawS
         scopeChallenge?: ScopeChallengeHandler;
         _meta?: Record<string, unknown>;
     };
-    cb: (args?: any) => any // real type not exported from zod
+    cb: (input: InputArgs, ctx: ServerContext) => any // real type not exported from zod
 };
 
 export abstract class AbstractCms {
     protected abstract cmsKnowledge: string;
-    abstract setup (): void;
+    abstract setup (): Promise<void>;
     abstract getCmsKnowledge(): string;
     abstract getAllContentTypes (): ITool<any>;
+    abstract getContentTypesByUID (): ITool<any>;
+    abstract createContentType (): ITool<any>;
 }

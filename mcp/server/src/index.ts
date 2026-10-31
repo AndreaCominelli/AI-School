@@ -1,11 +1,13 @@
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
-import { createServer } from './server.ts';
-import { AbstractCms } from "./cms/AbstractCms.ts";
-import ContentstackCms from "./cms/contentstack/ContentstackCms.ts";
+import MCPServer from './server.ts';
 
-const cms: AbstractCms = new ContentstackCms([]);
+const main = async () => {
+  const server = await MCPServer.create();
 
-serveStdio(() => createServer(cms), {
-  onerror: (error) => console.error("Weather MCP Server error:", error),
-});
+  serveStdio(server.createServer, {
+    onerror: (error) => console.error("CMS MCP Server error:", error),
+  });
+}
+
+main();
 
