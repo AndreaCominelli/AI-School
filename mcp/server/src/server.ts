@@ -12,11 +12,11 @@ class MCPServer {
     private static instance: MCPServer | undefined;
 
     private constructor(cms: AbstractCms) {
+        this.cms = cms;
         this.server = new McpServer({
             name: "cms-mcp-server",
             version: "v1.0.0",
-        })
-        this.cms = cms;
+        }, {instructions: this.cms.getCmsKnowledge()})
     }
 
     static async create(): Promise<MCPServer> {
@@ -95,13 +95,6 @@ class MCPServer {
                         content: {
                             type: 'text' as const,
                             text: SYSTEM_PROMPT,
-                        }
-                    },
-                    {
-                        role: 'user' as const,
-                        content: {
-                            type: 'text' as const,
-                            text: cmsKnowledge,
                         }
                     }
                 ]

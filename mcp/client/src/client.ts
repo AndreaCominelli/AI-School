@@ -18,7 +18,7 @@ class MCPClient {
     private tools: Tool[] = [];
     private prompts: Prompt[] = [];
     private messages: MessageParam[] = [];
-    private systemPrompt: string | TextBlockParam[] | undefined;
+    private systemPrompt: TextBlockParam[] = [];
 
     constructor() {
         if (!process.env.MODEL_KEY) {
@@ -204,9 +204,17 @@ class MCPClient {
 
     async chatLoop() {
         const systemMessages = await this.loadSystemPrompt();
-        this.systemPrompt = systemMessages
-            .map((m) => m.content as string)
-            .join("\n\n");
+        const blocks: TextBlockParam[] = systemMessages.map((m) => ({
+            type: "text",
+            text: m.content as string,
+        }));
+
+        const instructions = this.mcp.getInstructions();
+        if (instructions) {
+            blocks.push({ type: "text", text: instructions });
+        }
+
+        this.systemPrompt = blocks;
 
         const rl = readline.createInterface({
             input: process.stdin,
