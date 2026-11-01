@@ -11,7 +11,7 @@ class MCPClient {
     tools = [];
     prompts = [];
     messages = [];
-    systemPrompt;
+    systemPrompt = [];
     constructor() {
         if (!process.env.MODEL_KEY) {
             throw new Error("ANTHROPIC_API_KEY is not set");
@@ -69,8 +69,6 @@ class MCPClient {
     async loadSystemPrompt(args) {
         // retrieve system prompt from mcp server
         // Only one system prompt can be defined by the user
-        // Otherwise, must call getPrompt for each specified system-prompt
-        // Not a problem but ugly.
         const systemPromptName = this.prompts
             .filter((prompt) => prompt.title?.includes("system-prompt"))
             .map((prompt) => prompt.name)[0];
@@ -93,7 +91,6 @@ class MCPClient {
             ];
         });
     }
-    // TODO: è possibile modificare l'output del blocco di thinking?
     async processQuery(query) {
         let response = {};
         let stop = false;
@@ -106,7 +103,7 @@ class MCPClient {
                 response = await this.anthropic.messages.create({
                     cache_control: { type: "ephemeral", ttl: "5m" },
                     model: process.env.MODEL,
-                    max_tokens: 1024,
+                    max_tokens: 8192,
                     messages: this.messages,
                     tools: [
                         ...this.tools,
@@ -120,7 +117,7 @@ class MCPClient {
                 });
                 if (response.stop_reason !== "tool_use") {
                     stop = true;
-                    continue; // con while(!stop) salta alla condizione ed esce
+                    continue;
                 }
                 const toolResults = [];
                 for (const block of response.content) {
@@ -158,13 +155,23 @@ class MCPClient {
                 throw err;
             }
         } while (!stop);
+        console.log('--- STOP REASON ---: ', response.stop_reason); // always log the stop reason to get more details on llm outcome
         return response;
     }
     async chatLoop() {
+        /*
         const systemMessages = await this.loadSystemPrompt();
-        this.systemPrompt = systemMessages
-            .map((m) => m.content)
-            .join("\n\n");
+        const blocks: TextBlockParam[] = systemMessages.map((m) => ({
+            type: "text",
+            text: m.content as string,
+        }));
+        */
+        const blocks = [];
+        const instructions = this.mcp.getInstructions();
+        if (instructions) {
+            blocks.push({ type: "text", text: instructions });
+        }
+        this.systemPrompt = blocks;
         const rl = readline.createInterface({
             input: process.stdin,
             output: process.stdout,

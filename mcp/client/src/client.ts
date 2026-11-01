@@ -86,40 +86,6 @@ class MCPClient {
         }
     }
 
-    private async loadSystemPrompt(
-        args?: Record<string, string>,
-    ): Promise<MessageParam[]> {
-        // retrieve system prompt from mcp server
-        // Only one system prompt can be defined by the user
-        // Otherwise, must call getPrompt for each specified system-prompt
-        // Not a problem but ugly.
-        const systemPromptName = this.prompts
-            .filter((prompt) => prompt.title?.includes("system-prompt"))
-            .map((prompt) => prompt.name)[0];
-
-        if (!systemPromptName) {
-            throw new Error("System prompt unavailble");
-        }
-
-        const prompt = await this.mcp.getPrompt({
-            name: systemPromptName,
-            arguments: args,
-        });
-
-        // prompt.messages: [{ role: 'user' | 'assistant', content: { type: 'text', text: '...' } }]
-        return prompt.messages.flatMap((m): MessageParam[] => {
-            if (m.content.type !== "text") return []; // image/resource: da gestire a parte
-            return [
-                {
-                    role: "user",
-                    content: m.content.text,
-                },
-            ];
-        });
-    }
-
-    // TODO: è possibile modificare l'output del blocco di thinking?
-
     private async processQuery(
         query: string,
     ): Promise<Anthropic.Messages.Message> {
@@ -136,7 +102,7 @@ class MCPClient {
                 response = await this.anthropic.messages.create({
                     cache_control: { type: "ephemeral", ttl: "5m" },
                     model: process.env.MODEL!,
-                    max_tokens: 1024,
+                    max_tokens: 8192,
                     messages: this.messages,
                     tools: [
                         ...this.tools,
@@ -152,7 +118,7 @@ class MCPClient {
 
                 if (response.stop_reason !== "tool_use") {
                     stop = true;
-                    continue; // con while(!stop) salta alla condizione ed esce
+                    continue;
                 }
 
                 const toolResults: ToolResultBlockParam[] = [];
@@ -199,16 +165,13 @@ class MCPClient {
             }
         } while (!stop);
 
+        console.log('--- STOP REASON ---: ', response.stop_reason); // always log the stop reason to get more details on llm outcome
+
         return response;
     }
 
     async chatLoop() {
-        const systemMessages = await this.loadSystemPrompt();
-        const blocks: TextBlockParam[] = systemMessages.map((m) => ({
-            type: "text",
-            text: m.content as string,
-        }));
-
+        const blocks: TextBlockParam[] = [];
         const instructions = this.mcp.getInstructions();
         if (instructions) {
             blocks.push({ type: "text", text: instructions });

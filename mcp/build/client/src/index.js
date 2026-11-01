@@ -1,7 +1,10 @@
 import MCPClient from "./client.js";
+import { getLangFuse } from "./langFuse.js";
 const main = async () => {
     const mcpClient = new MCPClient();
+    const langFuseSDK = getLangFuse();
     try {
+        langFuseSDK.start();
         await mcpClient.connectToServer(process.argv[2]);
         await mcpClient.chatLoop();
     }
@@ -10,6 +13,7 @@ const main = async () => {
     }
     finally {
         await mcpClient.cleanup();
+        langFuseSDK.shutdown();
     }
 };
 main();

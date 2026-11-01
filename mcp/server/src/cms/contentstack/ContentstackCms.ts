@@ -162,7 +162,7 @@ class ContentstackCms extends AbstractCms {
             cb: async ({ data, includeBranch, componentPath }) => {
                 const cmsApiKey = process.env.CMS_API_KEY;
                 const cmsMngmtToken = process.env.CMS_MNG_TOKEN;
-                const ALREADY_DONE_FILE_NAME = 'already_done';
+                const ALREADY_DONE_FILE_NAME = '../resources/already_done';
 
                 try {
                     // check if component has already been created as content type

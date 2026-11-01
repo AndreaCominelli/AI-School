@@ -611,9 +611,3 @@ Allows you to define actions to be taken as per your field visibility rules. Und
 match\_type
 
 Determines whether the field visibility rule should be applied when “all” or “any” of the specified conditions are met.
-
-## General rules to map props to content types
-
-It can be that not every component prop must be mapped to a field inside the newly created content type, such as
-the 'children' prop or other props coming from the parent component. Indeed, these props are used to change the behaviour in the current component, thus they are not mapped.
-Every prop commented with '@cms-ignore' MUST be ignored during the mapping process.

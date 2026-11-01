@@ -16,7 +16,7 @@ class MCPServer {
         this.server = new McpServer({
             name: "cms-mcp-server",
             version: "v1.0.0",
-        }, {instructions: this.cms.getCmsKnowledge()})
+        }, {instructions: SYSTEM_PROMPT + '\n' +this.cms.getCmsKnowledge()})
     }
 
     static async create(): Promise<MCPServer> {
@@ -35,7 +35,7 @@ class MCPServer {
 
         switch(process.env.CMS) {
             case 'contentstack':
-                cms = new ContentstackCms(['./knowledge/contentstack_create_content_type']);
+                cms = new ContentstackCms(['../resources/contentstack_create_content_type']);
                 break;
             default:
                 throw new Error('CMS stack not implemented');
@@ -57,7 +57,6 @@ class MCPServer {
             throw new Error('CMS client not yet initialized');
         }
 
-        const cmsKnowledge = this.cms.getCmsKnowledge();
         const allContentTypesTool = this.cms.getAllContentTypes();
         const contentTypesByUID = this.cms.getContentTypesByUID();
         const createContentType = this.cms.createContentType();
@@ -79,27 +78,6 @@ class MCPServer {
             createContentType.config,
             createContentType.cb
         );
-
-        this.server.registerPrompt(
-            'cms-knowledge',
-            {
-                title: 'system-prompt',
-                description: `
-                    The CMS knowledge used to map javascript objects to compatible CMS content types.
-                    It also includes the full tools guide to give the model the necessary steps to query the CMS.`
-            },
-            () => ({
-                messages: [
-                    {
-                        role: 'user' as const,
-                        content: {
-                            type: 'text' as const,
-                            text: SYSTEM_PROMPT,
-                        }
-                    }
-                ]
-            })
-        )
 
         return this.server;
     };
