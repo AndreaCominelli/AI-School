@@ -1,5 +1,7 @@
 */node_modules
 */.env
 .DS_Store
-rag-ts/data/papers
-rag-ts/data/json
+
+# mcp project
+mcp/build/client/src
+mcp/build/server/src
