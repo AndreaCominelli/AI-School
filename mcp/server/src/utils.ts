@@ -2,25 +2,30 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { isAxiosError } from "axios";
+import { ToolError } from "@anthropic-ai/sdk/lib/tools/ToolError.mjs";
 
 export const readFile = async (
     filePath: string | undefined,
 ): Promise<string> => {
     if (!filePath) throw new Error("File path is undefined");
 
-    let result: string = "";
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
     const coolPath = path.join(__dirname, filePath);
-    const readStream = fs.createReadStream(coolPath);
+    const readStream = fs.createReadStream(coolPath, { encoding: 'utf-8' });
     try {
+        let result: string = "";
+        // readStream emits some events (such as 'error').
+        // By looping on it, we can catch and process them
         for await (const chunk of readStream) {
             result += chunk;
         }
         return result;
     } catch (error) {
-        throw error;
+        throw error instanceof ToolError
+            ? error
+            : new ToolError(toErrorMessage(error));
     } finally {
-        readStream.close();
+        readStream.destroy();
     }
 };
 
@@ -33,7 +38,7 @@ export const writeFile = async (
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
     const coolPath = path.join(__dirname, filePath);
     const writeStream = fs.createWriteStream(coolPath, { flags: "a" });
-    writeStream.write(line, (error) => {
+    writeStream.write(line + '\n', (error) => {
         console.log(error);
         writeStream.close();
     });

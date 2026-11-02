@@ -1,0 +1,32 @@
+{
+  "name": "mcp",
+  "version": "1.0.0",
+  "description": "The mcp server counterpart of the cms agent project",
+  "license": "ISC",
+  "author": "Andrea Cominelli",
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "copy-assets": "cp -R \"./server/resources/\" build/server/resources/",
+    "start-server": "node ./build/server/src/index.js",
+    "start-client": "node --stack-trace-limit=50 ./build/client/src/index.js",
+    "build": "tsc && npm run copy-assets"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
+    "@arizeai/openinference-instrumentation-anthropic": "^1.0.0",
+    "@langfuse/otel": "^6.0.2",
+    "@modelcontextprotocol/client": "^2.4.0",
+    "@modelcontextprotocol/server": "^2.4.0",
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.223.0",
+    "@opentelemetry/otlp-exporter-base": "^0.223.0",
+    "@opentelemetry/sdk-node": "^0.223.0",
+    "zod": "^4.6.7"
+  }
+}
