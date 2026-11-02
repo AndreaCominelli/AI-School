@@ -66,31 +66,6 @@ class MCPClient {
             throw e;
         }
     }
-    async loadSystemPrompt(args) {
-        // retrieve system prompt from mcp server
-        // Only one system prompt can be defined by the user
-        const systemPromptName = this.prompts
-            .filter((prompt) => prompt.title?.includes("system-prompt"))
-            .map((prompt) => prompt.name)[0];
-        if (!systemPromptName) {
-            throw new Error("System prompt unavailble");
-        }
-        const prompt = await this.mcp.getPrompt({
-            name: systemPromptName,
-            arguments: args,
-        });
-        // prompt.messages: [{ role: 'user' | 'assistant', content: { type: 'text', text: '...' } }]
-        return prompt.messages.flatMap((m) => {
-            if (m.content.type !== "text")
-                return []; // image/resource: da gestire a parte
-            return [
-                {
-                    role: "user",
-                    content: m.content.text,
-                },
-            ];
-        });
-    }
     async processQuery(query) {
         let response = {};
         let stop = false;
@@ -159,13 +134,6 @@ class MCPClient {
         return response;
     }
     async chatLoop() {
-        /*
-        const systemMessages = await this.loadSystemPrompt();
-        const blocks: TextBlockParam[] = systemMessages.map((m) => ({
-            type: "text",
-            text: m.content as string,
-        }));
-        */
         const blocks = [];
         const instructions = this.mcp.getInstructions();
         if (instructions) {
