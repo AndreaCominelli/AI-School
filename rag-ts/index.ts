@@ -44,15 +44,15 @@ const main = async (vectorDb: VectorDB) => {
 
 let vectorDb;
 
-switch (arg) {
-    case 'inference':
+switch (arg) { 
+    case 'infer':
         vectorDb = VectorDB.instance('../data/json/');
         main(vectorDb);
         break;
     case 'convert':
         convertAllFilesInDir('./data/papers', '../data/json');
         break;
-    case 'evaluation':
+    case 'evaluate':
         vectorDb = VectorDB.instance('../data/json/');
         const samplesString = readFileSync('./src/evaluation.json');
         const samples = JSON.parse(samplesString);
